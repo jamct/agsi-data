@@ -1,21 +1,29 @@
 import requests
 import altair as alt
-import pandas as pd   
+import pandas as pd
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 url = 'https://agsi.gie.eu/api'
 
 params = {
     "country": "de",
-    "from": "2022-01-31",
+    "from": "2022-01-02",
     "size": 300
 }
 
-headers = {
-    "x-key" : "<KEY>"
+head = {
+    "x-key" : os.environ.get("API_KEY")
 }
 
-resp = requests.get(url=url, params=params, headers=headers)
+resp = requests.get(url=url, params=params, headers=head)
 data = resp.json()
+
+if  not data['data']:
+    exit("Error reading data from api. Check API key")
+
 df = pd.json_normalize(data['data'])
 df['full'] = df['full'].astype(float)
 df['injection'] = df['injection'].astype(float)
@@ -31,6 +39,8 @@ line = base.mark_line(color='red').encode(y = alt.Y('full',
 bar = base.mark_bar(color='green').encode(y = alt.Y('injection',
      axis=alt.Axis(title ="Einspeisung [GWh/d]") ))
     
-(line+bar).properties(height=600, width=1200,  title='Gasspeicher in Deutschland' ).resolve_scale(
+diagram = line+bar
+
+diagram.properties(height=600, width=1200,  title='Gasspeicher in Deutschland' ).resolve_scale(
     y = 'independent'
 ).save('data.html')
